@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "hive": {
+      "command": "hive-mcp",
+      "args": [],
+      "env": {
+        "HIVE_DB_PATH": "${PWD}/.hive/messages.db",
+        "HIVE_TEAM": "${HIVE_TEAM}"
+      }
+    }
+  }
+}

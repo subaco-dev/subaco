@@ -1,0 +1,14 @@
+# direnv / Nix
+/.direnv/
+result
+result-*
+
+# Python / uv
+/.venv/
+__pycache__/
+*.py[cod]
+
+# メモリ／実行プレーンのローカル秘密。standard は既定で生成しないが、秘密漏洩防止のため
+# 防御的に無視する（.hive: SQLite/team/Zvec、.cube: token 等）。
+/.hive/
+/.cube/

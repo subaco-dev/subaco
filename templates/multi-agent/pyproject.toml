@@ -1,0 +1,24 @@
+# multi-agent テンプレートの Python プロジェクト定義（雛形）。
+# agent-context-maintainer の実行環境（python3.11）と、実行プレーン検証ヘルパー
+# scripts/sandbox_run.py が依存する E2B SDK を uv で管理するために置く。
+# bootstrap.sh が __PROJECT_SLUG__ をディレクトリ名由来のスラグへ置換する。
+#
+# 注: hive-mcp（subaco-hive）と cube-shim（subaco-shim）は devShell の起動スクリプト（uvx）で
+# 起動し、依存はテンプレート同梱の requirements-hive.txt / requirements-shim.txt で固定する。
+# 本 pyproject が管理するのはプロダクト側の Python 依存（e2b-code-interpreter 等）のみ。
+[project]
+name = "__PROJECT_SLUG__"
+version = "0.0.0"
+description = "agent-native product (multi-agent template)"
+requires-python = ">=3.11"
+dependencies = [
+  # TODO: scripts/sandbox_run.py が使う E2B SDK を追加する。
+  #   バージョンは将来の spike で固定する（勝手に確定しない）。
+  #   例: "e2b-code-interpreter==<将来確定するバージョン>"
+]
+
+[tool.uv]
+# このリポジトリ自体はビルド対象のパッケージではなく、依存管理のためのルートとして扱う
+# （src/ レイアウト不要。uv sync/lock がルートのビルドを試みないようにする）。
+package = false
+# uv.lock は bootstrap.sh の `uv lock` で生成し、shellHook が `uv sync --frozen` で同期する。

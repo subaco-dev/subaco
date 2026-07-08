@@ -1,0 +1,17 @@
+# direnv / Nix
+/.direnv/
+result
+result-*
+
+# Python / uv
+/.venv/
+__pycache__/
+*.py[cod]
+
+# メモリプレーン（機密・再生成不能データ。必ず gitignore）
+# .hive/messages.db（SQLite）, team, hive.sock, writer.lock, memory/（Zvec）を含む。
+/.hive/
+
+# 実行プレーン（シムのローカル状態。トークン等の秘密を含む）
+# .cube/port, .cube/token（e2b_<hex32>, 0600）, .cube/writer.lock を含む。
+/.cube/

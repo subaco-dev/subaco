@@ -1,0 +1,92 @@
+name: ci
+# subaco テンプレートリポジトリ自身の CI。
+#
+# (a) smoke test: 3 テンプレート（minimal / standard / multi-agent）を一時 dir へ
+#     nix flake init -t で展開 → bootstrap.sh --ci（非対話）→ nix develop で基本コマンド
+#     （rg --version 等）応答 → agent-context check（a-c-m 同梱の standard / multi-agent のみ。
+#     minimal は a-c-m 非同梱のため対象外）。ubuntu / macos マトリクス・Determinate Nix。
+#
+# (b) タグ運用:
+#     `nix flake init -t github:ponponusa/subaco#standard` は既定ブランチ（main）を取得するため、
+#     開発中の main 破壊が DoD の 5 分クイックスタートを壊し得る。README は安定タグ参照
+#     `github:ponponusa/subaco/<tag>#standard` を案内する。テンプレート変更のリリース手順:
+#       1) 本 smoke が両 OS × 3 テンプレートで green,
+#       2) 安定タグ vX.Y を付与（テンプレート変更は minor 以上）,
+#       3) README のタグ参照を更新する。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 最小権限（権限最小化に準ずる）。
+permissions:
+  contents: read
+
+jobs:
+  # subaco 自身の flake（templates 出力・devShell・formatter）の評価健全性。
+  flake-check:
+    name: nix flake check (subaco repo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: 供給網対策としてリリース時に commit SHA へピン留めする。
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: nix flake check
+        run: nix flake check
+
+  # 3 テンプレート × 2 OS の smoke（展開 → bootstrap → devShell 基本コマンド）。
+  smoke:
+    name: smoke ${{ matrix.template }} @ ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        template: [minimal, standard, multi-agent]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: 展開 → bootstrap → 基本コマンド応答
+        # matrix.template は本ワークフローが定める固定値のみ（外部入力ではない）。
+        # env 経由で渡し run では $TEMPLATE として参照する（インジェクション対策の作法）。
+        env:
+          TEMPLATE: ${{ matrix.template }}
+        run: |
+          set -euxo pipefail
+          proj="${RUNNER_TEMP}/proj-${TEMPLATE}"
+          rm -rf "$proj"
+          mkdir -p "$proj"
+          cd "$proj"
+
+          # ローカル checkout の flake からテンプレートを展開する。
+          # GITHUB_WORKSPACE は subaco リポジトリ直下（flake.nix / templates/ を含む）。
+          nix flake init -t "${GITHUB_WORKSPACE}#${TEMPLATE}"
+
+          # 以降の nix develop は path-flake 参照（path:$proj）で固定する。bootstrap が最後に
+          # git init するため、素の `nix develop`（= git-flake 評価）では未追跡ファイルが
+          # 評価から除外され "flake.nix 不在" 相当になる。path: は git 状態を無視しディレクトリ
+          # 全体をコピーして評価するため、git init 前後どちらでも安定する。
+          if [ "$TEMPLATE" != "minimal" ]; then
+            # a-c-m を vendor（best-effort。実 URL は段階3で確定 — vendor-acm.sh の TODO）。
+            bash scripts/vendor-acm.sh || echo "vendor-acm best-effort skip（段階3 で URL 確定）"
+            # 非対話 bootstrap（名前置換 → scaffold → (multi-agent) hive-team/.cube → uv lock → git init）。
+            nix develop "path:$proj" -c ./bootstrap.sh --ci
+          fi
+
+          # 基本コマンド応答（DoD 代表確認。devShell が正しく解決される証跡）。
+          nix develop "path:$proj" -c rg --version
+          nix develop "path:$proj" -c jq --version
+
+      - name: agent-context check（standard / multi-agent のみ）
+        if: matrix.template != 'minimal'
+        # a-c-m の vendored copy が前提。実 URL 未確定の間は空振りし得るため best-effort とし、
+        # URL 確定後（段階3）に continue-on-error を外して必須ゲート化する。
+        continue-on-error: true
+        env:
+          TEMPLATE: ${{ matrix.template }}
+        run: |
+          set -euxo pipefail
+          proj="${RUNNER_TEMP}/proj-${TEMPLATE}"
+          cd "$proj"
+          nix develop "path:$proj" -c agent-context check .

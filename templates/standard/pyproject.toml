@@ -1,0 +1,16 @@
+# standard テンプレートの Python プロジェクト定義（雛形）。
+# 主に agent-context-maintainer の実行環境（python3.11）と uv による依存管理のために置く。
+# bootstrap.sh が __PROJECT_SLUG__ をディレクトリ名由来のスラグへ置換する。
+[project]
+name = "__PROJECT_SLUG__"
+version = "0.0.0"
+description = "agent-native product (standard template)"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+# このリポジトリ自体はビルド対象のパッケージではなく、依存管理のためのルートとして扱う
+# （src/ レイアウト不要。uv sync/lock がルートのビルドを試みないようにする）。
+package = false
+# プロダクト側の Python 依存はここ（[project].dependencies）へ追加する。
+# uv.lock は bootstrap.sh の `uv lock` で生成し、shellHook が `uv sync --frozen` で同期する。

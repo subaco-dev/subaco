@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(hive admin:*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/hive-inbox-reminder.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

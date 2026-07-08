@@ -1,0 +1,23 @@
+name: ci
+# minimal テンプレート生成プロジェクトの CI。
+# minimal は agent-context-maintainer を同梱しないため、CI は nix flake check のみ
+# （devShell / flake の再現性検査）。a-c-m のドリフト検査は standard 以上でのみ行う。
+on:
+  push:
+  pull_request:
+
+# 最小権限（権限最小化に準ずる）。
+permissions:
+  contents: read
+
+jobs:
+  nix:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Determinate Nix（flakes / nix-command が既定で有効）。
+      # TODO: 供給網対策としてリリース時に commit SHA へピン留めする。
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: nix flake check
+        run: nix flake check

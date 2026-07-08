@@ -1,0 +1,42 @@
+name: ci
+# standard テンプレート生成プロジェクトの CI。
+# 必須ジョブ: nix flake check（devShell / flake の再現性）+ agent-context check（生成部の
+# ドリフト検出）+ agent-context skills check（スキルレジストリのドリフト検出）。
+on:
+  push:
+  pull_request:
+
+# 最小権限（権限最小化に準ずる）。
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: nix flake check + agent-context
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Determinate Nix（flakes / nix-command が既定で有効）。
+      # TODO: 供給網対策としてリリース時に commit SHA へピン留めする。
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      # devShell とテンプレート flake の再現性検査。
+      - name: nix flake check
+        run: nix flake check
+
+      # a-c-m の vendored copy を用意（ベストエフォート・冪等）。通常は vendor/ をコミットして
+      # おり不要だが、未 vendoring のリポジトリでも本ジョブが a-c-m を取得して検査を通せる。
+      # TODO(段階3): a-c-m の実 URL / エントリレイアウト確定まで取得が空振りし得る
+      # （vendor-acm.sh の TODO 参照）。確定後は本 CI がドリフトの必須ゲートとして機能する。
+      - name: vendor agent-context-maintainer（best-effort）
+        run: |
+          bash scripts/vendor-acm.sh || echo "vendor-acm best-effort skip"
+
+      # 生成部（AGENTS.md 等のマーカー内）のドリフト検出。
+      # devShell 提供の配置非依存ラッパー agent-context 経由（実体配置に依存しない）。
+      - name: agent-context check
+        run: nix develop -c agent-context check .
+
+      # スキルレジストリのドリフト検出。
+      - name: agent-context skills check
+        run: nix develop -c agent-context skills check .

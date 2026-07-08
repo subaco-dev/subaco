@@ -1,0 +1,21 @@
+# subaco（flake テンプレートリポジトリ）の .gitignore。
+# 各テンプレートは自身の .gitignore を持つ（templates/*/.gitignore）。本ファイルは
+# subaco リポジトリ自身の作業（ドッグフーディング・smoke・整形）で生じる副産物を無視する。
+
+# direnv / Nix
+/.direnv/
+result
+result-*
+
+# Python / uv（scripts/gen-tool-list.py 実行時のキャッシュ等）
+/.venv/
+__pycache__/
+*.py[cod]
+
+# メモリ／実行プレーンのローカル秘密（万一 subaco 直下で試験生成された場合の防御）
+/.hive/
+/.cube/
+
+# エディタ / OS
+.DS_Store
+*.swp
