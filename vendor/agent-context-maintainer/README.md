@@ -19,10 +19,15 @@
 | 項目 | 値 |
 |---|---|
 | リポジトリ | `ponponusa/agent-context-maintainer` |
-| ref（既定） | `v0.1.1` |
-| 単一ファイル | `scripts/agent_context.py` → 配置名 `agent_context.py` |
+| ref（既定） | commit SHA `25354c94db194f9c09bfaa3108542e9674325c7b`（= v0.1.1。**可変タグではなく SHA 固定**） |
+| 単一ファイル | `scripts/agent_context.py` → 配置名 `agent_context.py`（sha256 を vendor-acm.sh に固定） |
 | 生成マーカー | `<!-- agent-context-maintainer:begin -->` / `<!-- agent-context-maintainer:end -->` |
 | サブコマンド | `providers` / `skills` / `inventory` / `check` / `scaffold`（`sync` は存在しない） |
+
+**検証セマンティクス（CI ゲート）:** `vendor-acm.sh` は既存の vendored copy を**上書きしない**。
+存在すれば固定 sha256 と照合し、一致なら成功（取得スキップ）・**不一致ならエラー終了**する
+（改変・破損をダウンロードで隠蔽せず CI 失敗として表面化させる）。取得時もダウンロード物を
+checksum 検証してから配置する。座標を環境変数で上書きする場合は `ACM_SHA256` の併記が必要。
 
 統合上の確定事項（テンプレート側に反映済み）:
 
