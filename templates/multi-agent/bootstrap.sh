@@ -3,7 +3,8 @@
 #
 # 手順:
 #   1) プロジェクト名の置換
-#   2) agent-context scaffold . --agent auto
+#   1.5) a-c-m vendor 取得（不在時・best-effort）
+#   2) agent-context scaffold . --agent auto --append-generated-block
 #   3) チーム名の導出（hive-team → .hive/team 0600）と .cube 初期化
 #   4) uv lock
 #   5) git init
@@ -104,11 +105,21 @@ else
   warn "sd が見つからないためプロジェクト名置換をスキップしました（devShell で再実行してください）。"
 fi
 
+# --- 1.5) a-c-m の vendored copy 取得（不在時のみ・best-effort） ---
+if [ ! -f vendor/agent-context-maintainer/agent_context.py ] && [ -f scripts/vendor-acm.sh ]; then
+  log "a-c-m の vendored copy を取得します（scripts/vendor-acm.sh）"
+  bash scripts/vendor-acm.sh ||
+    warn "a-c-m の取得に失敗しました（オフライン等）。scaffold はスキップされます（後で再実行可）。"
+fi
+
 # --- 2) agent-context scaffold ---
-log "エージェント文脈を scaffold します（agent-context scaffold . --agent auto）"
+# テンプレート同梱の .agents/core.md 等は生成マーカーを持たない手書きファイルのため、
+# --append-generated-block で「手書き内容を保全しつつ管理ブロックを追記」する
+# （素の scaffold はマーカー不在を理由に拒否する）。再実行は冪等（ブロック内のみ更新）。
+log "エージェント文脈を scaffold します（agent-context scaffold . --agent auto --append-generated-block）"
 if have agent-context; then
-  agent-context scaffold . --agent auto ||
-    warn "agent-context scaffold に失敗しました。テンプレート同梱の AGENTS.md 等をそのまま使用します（a-c-m の vendored copy は段階3で確定 — TODO）。"
+  agent-context scaffold . --agent auto --append-generated-block ||
+    warn "agent-context scaffold に失敗しました。テンプレート同梱の AGENTS.md 等をそのまま使用します。"
 else
   warn "agent-context が見つかりません。scaffold をスキップします（テンプレート同梱ファイルを使用）。"
 fi

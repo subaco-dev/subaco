@@ -1,12 +1,11 @@
+# GitHub Copilot Instructions
+
+<!-- ブリッジ: 指示の正本は AGENTS.md。下の区間は a-c-m が生成・管理する（手で編集しない）。 -->
+
 <!-- agent-context-maintainer:begin -->
-# GitHub Copilot 向け指示（ブリッジ）
+## GitHub Copilot Bridge
 
-本プロジェクトのエージェント向け指示の**正本は [AGENTS.md](../AGENTS.md)** です。
-GitHub Copilot は本ファイルを読み込みますが、指示内容は AGENTS.md に一元化しています。
-作業前に必ず [AGENTS.md](../AGENTS.md) と [.agents/core.md](../.agents/core.md) を参照してください。
+Use `AGENTS.md` as the shared source of truth for repository instructions. For GitHub Copilot-specific behavior, also follow `.agents/profiles/copilot.md` when present.
 
-<!--
-  このブリッジは agent-context-maintainer が管理します。手で編集しないでください。
-  TODO(段階3): 実際の a-c-m マーカー書式は vendor 取得（scripts/vendor-acm.sh）時に確定・照合する。
--->
+Keep repository-wide Copilot guidance concise, durable, and not task-specific. Put path-specific or workflow-specific details in routed `.agents/skills/*/SKILL.md` files instead of duplicating them here.
 <!-- agent-context-maintainer:end -->

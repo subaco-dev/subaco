@@ -6,13 +6,10 @@ Nix リスト）を読み、各ツールの用途一行と推奨慣行を付し�
 これにより flake（実際に入るツール）とエージェント指示（AGENTS.md）の乖離が構造的に起きない。
 
 **重要（a-c-m を AGENTS.md の唯一の書き手として維持する）:**
-  本スクリプトは **AGENTS.md を直接編集しない**。出力は a-c-m のソース側断片
-  （既定 ``.agents/tools.md``。a-c-m が AGENTS.md 生成時に取り込む位置）へ書き、
-  AGENTS.md への反映は ``agent-context scaffold`` / ``sync`` 経由でのみ行う。
-
-  TODO(段階3 / vendor-acm.sh): a-c-m が断片を取り込む正確なパス・記法は a-c-m の
-  vendored copy を取得（scripts/vendor-acm.sh）してレイアウトが確定した後に照合する。
-  現状の出力先 ``.agents/tools.md`` は暫定であり、a-c-m の実レイアウトに合わせて調整し得る。
+  本スクリプトは **AGENTS.md を直接編集しない**。出力先は ``.agents/tools.md`` で確定
+  （a-c-m v0.1.1 と照合済み——a-c-m は断片を AGENTS.md へインライン展開しないため、
+  AGENTS.md 側は手書き領域からの**参照（ポインタ）**のみを持ち、一覧の正本は本出力とする。
+  乖離検査は CI の ``--check``（``just gen-tools-check``）が担う）。
 
 パース方針:
   Nix を評価せず、テキストとして ``tier1`` / ``tier2`` の ``[ ... ]`` ブロックから

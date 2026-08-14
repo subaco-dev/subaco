@@ -1,9 +1,11 @@
 # コアポリシー（core.md）
 
 <!--
-  .agents/core.md — agent-context-maintainer が AGENTS.md 生成に取り込むソース断片。
-  エージェント行動の標準ポリシーを記述する。本ファイルは a-c-m の
-  ソース側であり、手で編集してよい（AGENTS.md 側の生成領域へは scaffold/sync で反映される）。
+  .agents/core.md — エージェント行動の標準ポリシー（エージェントが直接読む一次文書）。
+  AGENTS.md の生成ブロック（Agent Context Entry）が本ファイルへの参照導線を持つ
+  （a-c-m は本ファイルの内容を AGENTS.md へインライン展開しない）。手書きで編集してよい。
+  bootstrap の `agent-context scaffold --append-generated-block` が管理ブロック
+  （Repository Snapshot 等）を末尾に追記し、以後の再 scaffold がブロック内を更新する。
 -->
 
 ## エージェント行動ポリシー（階層化された信頼）

@@ -24,13 +24,11 @@ jobs:
       - name: nix flake check
         run: nix flake check
 
-      # a-c-m の vendored copy を用意（ベストエフォート・冪等）。通常は vendor/ をコミットして
-      # おり不要だが、未 vendoring のリポジトリでも本ジョブが a-c-m を取得して検査を通せる。
-      # TODO(段階3): a-c-m の実 URL / エントリレイアウト確定まで取得が空振りし得る
-      # （vendor-acm.sh の TODO 参照）。確定後は本 CI がドリフトの必須ゲートとして機能する。
-      - name: vendor agent-context-maintainer（best-effort）
+      # a-c-m の vendored copy を用意（冪等。取得座標は v0.1.1 で確定済み）。通常は bootstrap が
+      # vendor/ をコミットしており不要だが、未 vendoring のリポジトリでも本ジョブが取得して検査を通す。
+      - name: vendor agent-context-maintainer
         run: |
-          bash scripts/vendor-acm.sh || echo "vendor-acm best-effort skip"
+          bash scripts/vendor-acm.sh
 
       # 生成部（AGENTS.md 等のマーカー内）のドリフト検出。
       # devShell 提供の配置非依存ラッパー agent-context 経由（実体配置に依存しない）。

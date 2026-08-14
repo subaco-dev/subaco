@@ -5,7 +5,8 @@
 # プロジェクト内のどのディレクトリから呼ばれても vendored copy を見つけて委譲する。
 # shellHook・CI・ドキュメントはすべてこのラッパーを参照する（実体の配置に依存しない）。
 #
-# 委譲サブコマンド: scaffold / check / sync / skills check。
+# 委譲サブコマンド: a-c-m v0.1.1 の実サブコマンドは providers / skills / inventory / check /
+# scaffold（`sync` は存在しない。再生成は `scaffold --append-generated-block` の再実行で行う）。
 #
 # dev 補助: SUBACO_ACM_DEV に a-c-m のチェックアウト（ディレクトリ）または実行ファイルを
 # 指定すると、そちらを優先して exec する。
@@ -28,26 +29,18 @@ find_vendor_root() {
 }
 
 # a-c-m のエントリを解決して exec する（見つからなければ 1 を返す）。
-# TODO(段階3): vendor-acm.sh が最終レイアウトを固定した後、候補を実レイアウトへ絞る。
+# 実レイアウトは vendor-acm.sh が確定済み: 単一ファイル agent_context.py（v0.1.1 で照合）。
 exec_acm() {
   base=$1
   shift
-  # 実行可能エントリ候補。
-  for cand in "$base/agent-context" "$base/bin/agent-context"; do
-    if [ -x "$cand" ]; then
-      exec "$cand" "$@"
-    fi
-  done
-  # Python 単一ファイル候補（a-c-m は単一ファイル構成）。
-  for py in \
-    "$base/agent_context_maintainer.py" \
-    "$base/agent_context.py" \
-    "$base/__main__.py" \
-    "$base/main.py"; do
-    if [ -f "$py" ]; then
-      exec python3 "$py" "$@"
-    fi
-  done
+  # Python 単一ファイル（vendor-acm.sh の配置形）。
+  if [ -f "$base/agent_context.py" ]; then
+    exec python3 "$base/agent_context.py" "$@"
+  fi
+  # dev override でチェックアウト（scripts/ 配下に実体）を指した場合。
+  if [ -f "$base/scripts/agent_context.py" ]; then
+    exec python3 "$base/scripts/agent_context.py" "$@"
+  fi
   return 1
 }
 
@@ -69,12 +62,12 @@ fi
 if root=$(find_vendor_root); then
   exec_acm "$root" "$@" || {
     echo "agent-context: vendored a-c-m のエントリを解決できません: $root" >&2
-    echo "  段階3の scripts/vendor-acm.sh でレイアウトが確定します（TODO）。" >&2
+    echo "  リポジトリ直下で scripts/vendor-acm.sh を実行して再取得してください。" >&2
     exit 1
   }
 fi
 
 # 3) 未取得（vendor/agent-context-maintainer が存在しない）。
 echo "agent-context: a-c-m の vendored copy が見つかりません（vendor/agent-context-maintainer/ 不在）。" >&2
-echo "  取得手順: リポジトリ直下で scripts/vendor-acm.sh を実行してください（段階3で追加予定）。" >&2
+echo "  取得手順: リポジトリ直下で scripts/vendor-acm.sh を実行してください。" >&2
 exit 1

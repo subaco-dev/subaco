@@ -1,10 +1,9 @@
 # ルーティング（routing.md）
 
 <!--
-  .agents/routing.md — a-c-m 標準構造の最小雛形。
-  タスク種別やコード領域ごとに、参照すべき文脈・プロファイル・担当を割り当てる。
-  TODO(段階3): a-c-m の vendored copy 取得（scripts/vendor-acm.sh）後、
-  実レイアウト・記法に合わせて調整する。
+  .agents/routing.md — タスク種別やコード領域ごとに、参照すべき文脈・プロファイル・担当を
+  割り当てる（手書き領域）。bootstrap の `agent-context scaffold --append-generated-block` が
+  a-c-m の管理ブロック（Universal First Reads / Task Routes 等）を末尾に追記する。
 -->
 
 ## 領域と参照

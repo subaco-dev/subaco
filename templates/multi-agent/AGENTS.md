@@ -5,36 +5,40 @@
 最初に読む指示の**正本**です。CLAUDE.md / GEMINI.md / .github/copilot-instructions.md は
 本ファイルへのブリッジであり、指示は本ファイルに一元化しています。
 
-<!-- agent-context-maintainer:begin -->
 <!--
-  この begin/end で囲まれた領域は agent-context-maintainer が生成・管理します。
-  手で編集しないでください（`agent-context scaffold` / `sync` で再生成されます）。
-  領域外の手書きセクション（アーキテクチャ原則 等）は a-c-m が保全します。
-  TODO(段階3): 実際の a-c-m マーカー書式は vendor 取得（scripts/vendor-acm.sh）時に確定・照合する。
+  下の begin/end 区間は agent-context-maintainer が生成・管理する（bootstrap の
+  `agent-context scaffold --append-generated-block` が更新。手で編集しない）。
+  区間外の手書きセクション（利用可能ツール・メモリ・実行プレーン・知識プレーン 等）は
+  a-c-m が保全する。
 -->
+<!-- agent-context-maintainer:begin -->
+## Agent Context Entry
+
+Always read these files before making repository changes:
+
+1. `.agents/core.md`
+2. `.agents/routing.md`
+3. The matching provider profile in `.agents/profiles/`; if unsure, read `.agents/profiles/generic.md`
+
+If `.agents/routing.md` routes the task to a skill, read that `SKILL.md` before editing.
+<!-- agent-context-maintainer:end -->
 
 ## 利用可能ツール
 
 <!--
-  本セクションの正本は scripts/gen-tool-list.py が agent-tools.nix から生成する
-  a-c-m ソース断片 .agents/tools.md です（`just gen-tools` で再生成）。反映は
-  agent-context scaffold/sync 経由でのみ行い、本ファイルを直接編集しません。
-  以下は a-c-m の vendored copy 取得（scripts/vendor-acm.sh・段階3）前のプレースホルダで、
-  sync 後は .agents/tools.md の内容へ置き換わります。
+  手書き（ポインタのみ）。一覧の正本は .agents/tools.md —— scripts/gen-tool-list.py が
+  agent-tools.nix から生成する（`just gen-tools` で再生成・`just gen-tools-check` で乖離検査）。
+  a-c-m は断片を AGENTS.md へインライン展開しないため、本セクションには一覧を書かず
+  参照だけを置く（flake との乖離を構造的に防ぐ）。
 -->
 
-devShell（`direnv allow` で有効化）で以下が利用可能です。慣行として、検索は `grep` ではなく `rg`、
-ファイル検索は `fd`、置換は `sd`、タスク実行は `just`（`just test` / `just lint`）を第一候補にしてください。
-
-- コード検索: `rg`（ripgrep） / 構文木ベースの検索・書換: `ast-grep`
-- ファイル検索: `fd` / 構造把握: `tree`
-- JSON/YAML/TOML: `jq` / `yq` / 文字列置換: `sd`
-- タスクランナー: `just`（このリポジトリでの正しい操作を教示する）
-- Git / GitHub: `git` / `gh`（`--json` 出力）
-- 品質: `shellcheck` `shfmt` `statix` `nil` `typos`
-- その他: `curl` `delta` `tokei` `hyperfine` `jc` `watchexec`
+devShell（`direnv allow` で有効化）で使えるツールの一覧と用途・推奨慣行は
+[.agents/tools.md](.agents/tools.md) を参照。要点: 検索は `grep` ではなく `rg`、
+ファイル検索は `fd`、置換は `sd`、タスク実行は `just`（`just test` / `just lint`）を第一候補にする。
 
 ## メモリ・実行プレーン
+
+<!-- 手書き。信頼・実行ポリシーの詳細は .agents/core.md にある。 -->
 
 - **チーム協業のメモリ**（メッセージ・長期記憶）は hive-mcp の MCP ツール経由で扱う:
   `hive_join` / `hive_post` / `hive_inbox` / `hive_remember` / `hive_recall` / `hive_history` / `hive_members`。
@@ -44,11 +48,12 @@ devShell（`direnv allow` で有効化）で以下が利用可能です。慣行
 
 ## 知識プレーン
 
+<!-- 手書き。詳細な慣行は .agents/core.md（知識プレーンの使い分け）を参照。 -->
+
 - 依存 OSS（公開リポジトリ）の構造は **DeepWiki MCP に ask** する（clone より先に）。
-- 自リポジトリの構造把握は本 `.agents/` と `tree` / `ast-grep` を基本とする。
+- 自リポジトリの構造把握は `.agents/` と `tree` / `ast-grep` を基本とする。
 - 経緯・決定・過去の試行は **`hive_recall`** で参照する（再生成不能なエピソード知識）。
 - **プライベートコードに関する質問を公開 MCP（DeepWiki）へ送らない**（質問文自体が漏洩経路）。
-<!-- agent-context-maintainer:end -->
 
 ## アーキテクチャ原則
 

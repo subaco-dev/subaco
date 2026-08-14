@@ -10,24 +10,25 @@
 # 方針:
 #   - **best-effort**: ネットワーク不通や取得失敗でも既存 vendor/ を壊さない
 #     （一時ファイルへ落としてから原子的に mv する）。
-#   - このマシン（オフライン前提）では実行しなくてよい。CI や利用者環境で走る。
-#   - 取得元は環境変数で上書き可能。既定値は暫定であり、実 URL は取得先確定後に固定する。
+#   - 取得元は環境変数で上書き可能。既定値は確定済み（下記）。
 #
-# TODO(段階3): a-c-m の実リポジトリ座標（org/repo）・ref・単一ファイル名・最終レイアウトを確定し、
-#   既定値（ACM_REPO / ACM_REF / ACM_FILE）を実値へ固定する。エントリの実体パスが確定したら
-#   wrappers/agent-context.sh の候補列（exec_acm）もそれに合わせて絞る。
+# 確定済みの取得元（v0.1.1 で照合済み）:
+#   - リポジトリ: ponponusa/agent-context-maintainer
+#   - 単一ファイル: scripts/agent_context.py（依存フリー・Python 3.9+）
+#   - 生成マーカー: `<!-- agent-context-maintainer:begin -->` / `:end -->`（実体と照合済み）
+#   - あわせて LICENSE（MIT）も同梱する（vendored copy の再配布条件）。
 #
 # 使い方:
-#   bash scripts/vendor-acm.sh            # 既定座標から取得
-#   ACM_REF=v1.2.3 bash scripts/vendor-acm.sh
+#   bash scripts/vendor-acm.sh            # 既定座標（v0.1.1）から取得
+#   ACM_REF=v0.2.0 bash scripts/vendor-acm.sh
 #   ACM_REPO=owner/repo ACM_FILE=tool.py bash scripts/vendor-acm.sh
 set -euo pipefail
 
-# --- 取得元（環境変数で上書き可。既定は暫定 — 上記 TODO） ---
+# --- 取得元（環境変数で上書き可） ---
 ACM_REPO="${ACM_REPO:-ponponusa/agent-context-maintainer}"
-ACM_REF="${ACM_REF:-main}"
-# a-c-m の単一ファイル名。実名は取得先確定後に固定する。
-ACM_FILE="${ACM_FILE:-agent_context_maintainer.py}"
+ACM_REF="${ACM_REF:-v0.1.1}"
+# a-c-m の単一ファイル（リポジトリ内パス。配置先はベース名のみを使う）。
+ACM_FILE="${ACM_FILE:-scripts/agent_context.py}"
 # raw 取得 URL（GitHub raw。ミラー利用時は ACM_BASE_URL で上書き）。
 ACM_BASE_URL="${ACM_BASE_URL:-https://raw.githubusercontent.com/${ACM_REPO}/${ACM_REF}}"
 
@@ -47,30 +48,43 @@ fi
 
 mkdir -p "$vendor_dir"
 
+# 取得ヘルパー: URL を一時ファイルへ落とし、健全性を確認してから原子的に配置する。
+fetch() {
+  src_url=$1
+  dest_path=$2
+  tmp="$(mktemp "${TMPDIR:-/tmp}/acm.XXXXXX")"
+  if curl -fLsS "$src_url" -o "$tmp"; then
+    # 空ファイル・HTML エラーページを掴んでいないか最低限の健全性チェック。
+    if [ ! -s "$tmp" ]; then
+      rm -f "$tmp"
+      warn "取得結果が空です: $src_url（既存 vendor/ は更新しません）。"
+      return 1
+    fi
+    mv "$tmp" "$dest_path"
+    return 0
+  fi
+  rm -f "$tmp"
+  return 1
+}
+
 url="${ACM_BASE_URL}/${ACM_FILE}"
 dest="$vendor_dir/${ACM_FILE##*/}"
-tmp="$(mktemp "${TMPDIR:-/tmp}/acm.XXXXXX")"
-# シェル終了時に一時ファイルを掃除する。
-trap 'rm -f "$tmp"' EXIT
 
 log "取得します: $url"
-# -f: HTTP エラーで失敗扱い / -L: リダイレクト追従 / -s: 進捗抑制 / -S: エラーは表示。
-if curl -fLsS "$url" -o "$tmp"; then
-  # 空ファイル・HTML エラーページを掴んでいないか最低限の健全性チェック。
-  if [ ! -s "$tmp" ]; then
-    warn "取得結果が空です。vendor/ は更新しません（best-effort）。"
-    exit 1
-  fi
-  mv "$tmp" "$dest"
-  trap - EXIT
+if fetch "$url" "$dest"; then
   # 実行属性が要るエントリ形態にも備えて +x を付す（Python 単一ファイルでも無害）。
   chmod +x "$dest" 2>/dev/null || true
   log "配置しました: $dest"
+  # LICENSE（MIT）も同梱する（失敗しても本体は有効 — best-effort）。
+  if fetch "${ACM_BASE_URL}/LICENSE" "$vendor_dir/LICENSE"; then
+    log "配置しました: $vendor_dir/LICENSE"
+  else
+    warn "LICENSE の取得に失敗しました（本体は取得済み。必要なら手動で配置してください）。"
+  fi
   log "agent-context ラッパーが上方探索でこの vendor/ を解決します。"
   exit 0
 fi
 
 warn "取得に失敗しました（URL・ネットワーク・ACM_* を確認してください）。vendor/ は更新しません。"
 warn "  URL: $url"
-warn "  実 URL / 単一ファイル名は段階3で確定します（本スクリプト冒頭の TODO 参照）。"
 exit 1

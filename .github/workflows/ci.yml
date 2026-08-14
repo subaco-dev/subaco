@@ -68,8 +68,9 @@ jobs:
           # 評価から除外され "flake.nix 不在" 相当になる。path: は git 状態を無視しディレクトリ
           # 全体をコピーして評価するため、git init 前後どちらでも安定する。
           if [ "$TEMPLATE" != "minimal" ]; then
-            # a-c-m を vendor（best-effort。実 URL は段階3で確定 — vendor-acm.sh の TODO）。
-            bash scripts/vendor-acm.sh || echo "vendor-acm best-effort skip（段階3 で URL 確定）"
+            # a-c-m を vendor（座標は v0.1.1 で確定済み。bootstrap も不在時に取得するが、
+            # ここで先行取得してネットワーク失敗を bootstrap と切り分ける）。
+            bash scripts/vendor-acm.sh
             # 非対話 bootstrap（名前置換 → scaffold → (multi-agent) hive-team/.cube → uv lock → git init）。
             nix develop "path:$proj" -c ./bootstrap.sh --ci
           fi
@@ -80,9 +81,7 @@ jobs:
 
       - name: agent-context check（standard / multi-agent のみ）
         if: matrix.template != 'minimal'
-        # a-c-m の vendored copy が前提。実 URL 未確定の間は空振りし得るため best-effort とし、
-        # URL 確定後（段階3）に continue-on-error を外して必須ゲート化する。
-        continue-on-error: true
+        # a-c-m の vendored copy（bootstrap が取得・scaffold 済み）を前提とする必須ゲート。
         env:
           TEMPLATE: ${{ matrix.template }}
         run: |
