@@ -1,7 +1,8 @@
 name: ci
 # multi-agent テンプレート生成プロジェクトの CI。
-# 必須ジョブ: nix flake check（devShell / flake の再現性）+ agent-context check（生成部の
-# ドリフト検出）+ agent-context skills check（スキルレジストリのドリフト検出）。standard と同構成。
+# 必須ジョブ: nix flake check（devShell / flake の再現性）+ agent-context check（構造検査）
+# + agent-context skills check（スキルレジストリ検査）+ 生成一致ゲート（決定的 scaffold +
+# git diff --exit-code。check は構造検査であり生成結果の一致は検査しない）。standard と同構成。
 # 注: hive-mcp（メモリ）/ cube-shim（実行）の統合テストは各リポジトリ（subaco-hive / subaco-shim）
 #     側の CI が担う。本 CI はテンプレートの静的健全性に限る。
 on:
@@ -32,11 +33,22 @@ jobs:
         run: |
           bash scripts/vendor-acm.sh
 
-      # 生成部（AGENTS.md 等のマーカー内）のドリフト検出。
+      # 構造検査（必須ファイルの存在・相互参照・マーカー整合。生成結果の一致は検査しない）。
       # devShell 提供の配置非依存ラッパー agent-context 経由（実体配置に依存しない）。
       - name: agent-context check
         run: nix develop -c agent-context check .
 
-      # スキルレジストリのドリフト検出。
+      # スキルレジストリの検査。
       - name: agent-context skills check
         run: nix develop -c agent-context skills check .
+
+      # 生成一致ゲート（真のドリフト検出）: 決定的条件（--agent generic 固定・クリーン
+      # checkout）で scaffold を再実行し、生成部がコミット済み内容と一致することを検証する。
+      # ファイル追加等で Repository Snapshot（.agents/core.md）が変わった場合は、
+      # ローカルで `agent-context scaffold . --agent generic --append-generated-block` を
+      # 再実行してコミットすれば green に戻る（--agent auto は実行者の環境変数で profiles の
+      # active フラグが変わるため使わない）。
+      - name: agent-context 生成一致ゲート（scaffold + git diff）
+        run: |
+          nix develop -c agent-context scaffold . --agent generic --append-generated-block
+          git diff --exit-code

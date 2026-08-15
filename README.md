@@ -26,12 +26,13 @@ nix flake init -t github:ponponusa/subaco#standard
 # 2) devShell を有効化（初回は nixpkgs 取得で数分。以降は即時）
 direnv allow
 
-# 3) 初期化（プロジェクト名置換 → agent-context scaffold → uv lock → git init）
-./bootstrap.sh
+# 3) 初期化（プロジェクト名置換 → uv lock → git init → agent-context scaffold）
+bash ./bootstrap.sh
 ```
 
 `direnv allow` で devShell に入ると、`rg` / `fd` / `jq` / `just` などのツールが PATH に載ります。
-`bootstrap.sh` は一度だけ実行します（`--ci` で非対話。`-h` でヘルプ）。
+`bootstrap.sh` は一度だけ、**bash 経由で**実行します（`nix flake init` はファイルの実行ビットを
+保存しないため `./bootstrap.sh` は Permission denied になります。`--ci` で非対話。`-h` でヘルプ）。
 
 > **DoD:** Determinate Nix / direnv 導入済み・キャッシュ無しのマシンで、`nix flake init -t` から
 > devShell プロンプト表示と `rg --version` 応答まで 5 分以内（100Mbps 以上・cache.nixos.org 有効）。

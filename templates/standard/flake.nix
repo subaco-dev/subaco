@@ -48,15 +48,19 @@
               # bootstrap 未実行（uv.lock / .agents/ 不在）なら誘導のみ表示して以降をスキップ
               # （初回 direnv allow は bootstrap.sh より先に走るため、誤った修復行動を促さない）。
               if [ ! -f uv.lock ] || [ ! -d .agents ]; then
-                echo "ℹ 初回セットアップが未完了です: ./bootstrap.sh を実行してください"
+                echo "ℹ 初回セットアップが未完了です: bash ./bootstrap.sh を実行してください"
               else
                 # プロダクト側 Python 依存を uv で固定・同期し、.venv を PATH 先頭に通す。
                 uv sync --frozen || echo "⚠ uv sync 失敗: uv.lock と pyproject.toml を確認してください"
                 export VIRTUAL_ENV="$PWD/.venv"
                 export PATH="$PWD/.venv/bin:$PATH"
-                # エージェント文脈ファイルの整合チェック（軽量）。
-                agent-context check . --quiet ||
-                  echo "⚠ agent context が古い可能性: scaffold を実行してください"
+                # エージェント文脈ファイルの整合チェック（軽量・構造検査。生成一致は CI が検査する）。
+                # check に --quiet オプションは無い（v0.1.1）。成功時の 1 行出力だけ捨て、
+                # 失敗時は詳細確認と再生成の具体コマンドを案内する。
+                if ! agent-context check . >/dev/null 2>&1; then
+                  echo "⚠ agent context の整合が崩れています: 'agent-context check .' で詳細を確認し、"
+                  echo "  'agent-context scaffold . --agent generic --append-generated-block' で再生成してください"
+                fi
               fi
             '';
           };

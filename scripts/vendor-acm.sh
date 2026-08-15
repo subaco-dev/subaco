@@ -11,7 +11,10 @@
 #   - **既存の vendor は上書きしない**: 存在する場合は checksum を照合し、一致なら成功（スキップ）、
 #     不一致なら**エラー終了**（改変・破損の検出。上書きで隠蔽しない——CI がこの失敗で止まる）。
 #   - 座標を環境変数で上書きした場合（ACM_REPO/ACM_REF/ACM_FILE のいずれか）、既定 checksum は
-#     適用されない。ACM_SHA256 を併せて指定したときのみ検証する（未指定なら検証スキップを警告）。
+#     適用されず **ACM_SHA256 の併記が必須**（未指定は即エラー。検証なしの取得や、旧 vendor を
+#     「一致」と誤報して成功扱いにする経路を残さない）。LICENSE_SHA256 のみ任意（best-effort）。
+#   - 意図的な更新は「旧 vendor を削除 → 新座標 + ACM_SHA256 で取得 → DEFAULT_* を更新して
+#     コミット」の手順で行う（vendor/agent-context-maintainer/README.md 参照）。
 #
 # 確定済みの取得座標（v0.1.1 = commit 25354c9 で照合済み）:
 #   - リポジトリ: ponponusa/agent-context-maintainer
@@ -21,7 +24,8 @@
 #
 # 使い方:
 #   bash scripts/vendor-acm.sh            # 既定座標から取得 or 既存 vendor の検証
-#   ACM_REF=<commit-sha> ACM_SHA256=<hex> bash scripts/vendor-acm.sh   # 更新時
+#   rm -f vendor/agent-context-maintainer/agent_context.py &&
+#     ACM_REF=<commit-sha> ACM_SHA256=<hex> bash scripts/vendor-acm.sh   # 意図的な更新時
 set -euo pipefail
 
 # --- 既定座標（更新時は 4 点セットで上書き・確定する） ---
@@ -36,12 +40,17 @@ ACM_REF="${ACM_REF:-$DEFAULT_ACM_REF}"
 ACM_FILE="${ACM_FILE:-$DEFAULT_ACM_FILE}"
 ACM_BASE_URL="${ACM_BASE_URL:-https://raw.githubusercontent.com/${ACM_REPO}/${ACM_REF}}"
 
-# 座標が既定のままのときだけ既定 checksum を適用する（上書き時は ACM_SHA256 必須）。
+# 座標が既定のままのときだけ既定 checksum を適用する。座標を一つでも上書きした場合は
+# ACM_SHA256 を必須とする（未指定だと「検証スキップ→既存 v0.1.1 を一致と誤報して rc=0」
+# という無検証成功の経路になるため、ここで即エラーにする）。
 if [ "$ACM_REPO" = "$DEFAULT_ACM_REPO" ] && [ "$ACM_REF" = "$DEFAULT_ACM_REF" ] && [ "$ACM_FILE" = "$DEFAULT_ACM_FILE" ]; then
   ACM_SHA256="${ACM_SHA256:-$DEFAULT_ACM_SHA256}"
   LICENSE_SHA256="${LICENSE_SHA256:-$DEFAULT_LICENSE_SHA256}"
+elif [ -z "${ACM_SHA256:-}" ]; then
+  printf '✗ vendor-acm: 座標（ACM_REPO/ACM_REF/ACM_FILE）を上書きした場合は ACM_SHA256 の指定が必須です。\n' >&2
+  printf '  例: ACM_REF=<commit-sha> ACM_SHA256=<新ファイルの sha256> bash scripts/vendor-acm.sh\n' >&2
+  exit 1
 else
-  ACM_SHA256="${ACM_SHA256:-}"
   LICENSE_SHA256="${LICENSE_SHA256:-}"
 fi
 
@@ -58,13 +67,14 @@ sha256_of() {
   if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | cut -d' ' -f1; else sha256sum "$1" | cut -d' ' -f1; fi
 }
 
-# checksum 検証（期待値が空ならスキップして 0 を返す）。
+# checksum 検証。期待値が空ならスキップして 0 を返す——本体（ACM_SHA256）は座標上書き時に
+# 必須化済みのため、この経路に到達するのは任意の LICENSE_SHA256 のみ。
 verify_sha256() {
   path=$1
   expected=$2
   what=$3
   if [ -z "$expected" ]; then
-    warn "$what の checksum 検証をスキップします（座標上書き時は ACM_SHA256 等を指定してください）。"
+    warn "$what の checksum 検証をスキップします（LICENSE_SHA256 未指定・best-effort）。"
     return 0
   fi
   actual=$(sha256_of "$path")

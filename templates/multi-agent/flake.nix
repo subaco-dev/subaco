@@ -80,13 +80,16 @@
             # （standard と同一。hive/cube の初期化・環境変数配線は .envrc が担う）。
             shellHook = ''
               if [ ! -f uv.lock ] || [ ! -d .agents ]; then
-                echo "ℹ 初回セットアップが未完了です: ./bootstrap.sh を実行してください"
+                echo "ℹ 初回セットアップが未完了です: bash ./bootstrap.sh を実行してください"
               else
                 uv sync --frozen || echo "⚠ uv sync 失敗: uv.lock と pyproject.toml を確認してください"
                 export VIRTUAL_ENV="$PWD/.venv"
                 export PATH="$PWD/.venv/bin:$PATH"
-                agent-context check . --quiet ||
-                  echo "⚠ agent context が古い可能性: scaffold を実行してください"
+                # 構造検査のみ（生成一致は CI）。check に --quiet は無い（v0.1.1）ため出力抑止で代替。
+                if ! agent-context check . >/dev/null 2>&1; then
+                  echo "⚠ agent context の整合が崩れています: 'agent-context check .' で詳細を確認し、"
+                  echo "  'agent-context scaffold . --agent generic --append-generated-block' で再生成してください"
+                fi
               fi
             '';
           };

@@ -2,9 +2,10 @@ name: ci
 # subaco テンプレートリポジトリ自身の CI。
 #
 # (a) smoke test: 3 テンプレート（minimal / standard / multi-agent）を一時 dir へ
-#     nix flake init -t で展開 → bootstrap.sh --ci（非対話）→ nix develop で基本コマンド
-#     （rg --version 等）応答 → agent-context check（a-c-m 同梱の standard / multi-agent のみ。
-#     minimal は a-c-m 非同梱のため対象外）。ubuntu / macos マトリクス・Determinate Nix。
+#     nix flake init -t で展開 → bash bootstrap.sh --ci（非対話）→ nix develop で基本コマンド
+#     （rg --version 等）応答 → agent-context ゲート＝check / skills check ＋ 決定的 scaffold
+#     （--agent generic）+ git diff --exit-code による生成一致検証（a-c-m 同梱の standard /
+#     multi-agent のみ。minimal は a-c-m 非同梱のため対象外）。ubuntu / macos マトリクス・Determinate Nix。
 #
 # (b) タグ運用:
 #     `nix flake init -t github:ponponusa/subaco#standard` は既定ブランチ（main）を取得するため、
@@ -71,17 +72,22 @@ jobs:
             # a-c-m を vendor（座標は v0.1.1 で確定済み。bootstrap も不在時に取得するが、
             # ここで先行取得してネットワーク失敗を bootstrap と切り分ける）。
             bash scripts/vendor-acm.sh
-            # 非対話 bootstrap（名前置換 → scaffold → (multi-agent) hive-team/.cube → uv lock → git init）。
-            nix develop "path:$proj" -c ./bootstrap.sh --ci
+            # 非対話 bootstrap。`nix flake init` はファイルの実行ビットを保存しない
+            # （展開直後は -rw-r--r--）ため、必ず bash 経由で実行する（./bootstrap.sh は不可）。
+            nix develop "path:$proj" -c bash ./bootstrap.sh --ci
           fi
 
           # 基本コマンド応答（DoD 代表確認。devShell が正しく解決される証跡）。
           nix develop "path:$proj" -c rg --version
           nix develop "path:$proj" -c jq --version
 
-      - name: agent-context check（standard / multi-agent のみ）
+      - name: agent-context ゲート（standard / multi-agent のみ）
         if: matrix.template != 'minimal'
         # a-c-m の vendored copy（bootstrap が取得・scaffold 済み）を前提とする必須ゲート。
+        # check / skills check（構造検査）に加え、テンプレート CI と同一の決定的条件
+        # （--agent generic 固定）で scaffold を再実行し `git diff --exit-code` で
+        # 「bootstrap 直後のコミットが scaffold の固定点になっている」ことを検証する
+        # （= 生成一致ゲートが新規プロジェクトで最初から green である保証）。
         env:
           TEMPLATE: ${{ matrix.template }}
         run: |
@@ -89,3 +95,8 @@ jobs:
           proj="${RUNNER_TEMP}/proj-${TEMPLATE}"
           cd "$proj"
           nix develop "path:$proj" -c agent-context check .
+          nix develop "path:$proj" -c agent-context skills check .
+          git add -A
+          git -c user.email=ci@example.invalid -c user.name=ci commit -qm "bootstrap"
+          nix develop "path:$proj" -c agent-context scaffold . --agent generic --append-generated-block
+          git diff --exit-code

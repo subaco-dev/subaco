@@ -4,12 +4,15 @@
 # 手順:
 #   1) プロジェクト名の置換
 #   1.5) a-c-m vendor 取得（不在時・best-effort）
-#   2) agent-context scaffold . --agent auto --append-generated-block
-#   3) チーム名の導出（hive-team → .hive/team 0600）と .cube 初期化
-#   4) uv lock
-#   5) git init
+#   2) チーム名の導出（hive-team → .hive/team 0600）と .cube 初期化
+#   3) uv lock
+#   4) git init
+#   5) agent-context scaffold . --agent generic --append-generated-block ×2
+#      （git init 後に置くのは Repository Snapshot の走査が .gitignore 尊重に依存するため。
+#        --agent generic 固定と 2 回実行の理由は該当ステップのコメント参照）
 #   6) オプトイン導線（trusted_agents 案内 / allow_shared_kernel 対話 — --ci でスキップ）
 #
+# 実行は `bash ./bootstrap.sh`（nix flake init は実行ビットを保存しないため ./ 直接実行は不可）。
 # 非対話 --ci フラグ（smoke 用）で 6) の対話を全てスキップする。
 # 前提: `direnv allow`（または `nix develop`）で devShell に入った状態で実行する。
 set -euo pipefail
@@ -21,7 +24,7 @@ for arg in "$@"; do
   --ci) CI_MODE=1 ;;
   -h | --help)
     cat <<'EOF'
-使い方: ./bootstrap.sh [--ci]
+使い方: bash ./bootstrap.sh [--ci]
   --ci   非対話モード（CI / smoke 用。trusted_agents / allow_shared_kernel の対話導線を出さない）。
 EOF
     exit 0
@@ -112,19 +115,7 @@ if [ ! -f vendor/agent-context-maintainer/agent_context.py ] && [ -f scripts/ven
     warn "a-c-m の取得に失敗しました（オフライン等）。scaffold はスキップされます（後で再実行可）。"
 fi
 
-# --- 2) agent-context scaffold ---
-# テンプレート同梱の .agents/core.md 等は生成マーカーを持たない手書きファイルのため、
-# --append-generated-block で「手書き内容を保全しつつ管理ブロックを追記」する
-# （素の scaffold はマーカー不在を理由に拒否する）。再実行は冪等（ブロック内のみ更新）。
-log "エージェント文脈を scaffold します（agent-context scaffold . --agent auto --append-generated-block）"
-if have agent-context; then
-  agent-context scaffold . --agent auto --append-generated-block ||
-    warn "agent-context scaffold に失敗しました。テンプレート同梱の AGENTS.md 等をそのまま使用します。"
-else
-  warn "agent-context が見つかりません。scaffold をスキップします（テンプレート同梱ファイルを使用）。"
-fi
-
-# --- 3) チーム名の導出（hive-team → .hive/team）と .cube 初期化 ---
+# --- 2) チーム名の導出（hive-team → .hive/team）と .cube 初期化 ---
 # 正規化は hive-team（lib/hive_team.py）が唯一実装。ここでは呼ぶだけ。
 team=""
 log "チーム名を導出します（hive-team）"
@@ -143,7 +134,7 @@ if [ ! -d .cube ]; then
   mkdir -p .cube && chmod 700 .cube
 fi
 
-# --- 4) uv lock ---
+# --- 3) uv lock ---
 log "Python 依存をロックします（uv lock）"
 if have uv; then
   uv lock || warn "uv lock に失敗しました（ネットワーク接続 / pyproject.toml を確認してください）。"
@@ -151,7 +142,7 @@ else
   warn "uv が見つかりません。uv lock をスキップします。"
 fi
 
-# --- 5) git init ---
+# --- 4) git init ---
 if [ -d .git ]; then
   log "既存の git リポジトリを検出（git init はスキップ）"
 elif have git; then
@@ -159,6 +150,26 @@ elif have git; then
   git init -q
 else
   warn "git が見つかりません。git init をスキップします。"
+fi
+
+# --- 5) agent-context scaffold ---
+# テンプレート同梱の .agents/core.md 等は生成マーカーを持たない手書きファイルのため、
+# --append-generated-block で「手書き内容を保全しつつ管理ブロックを追記」する
+# （素の scaffold はマーカー不在を理由に拒否する）。
+# --agent generic 固定: --agent auto は実行者の環境変数（CLAUDECODE 等）で profiles の
+# active フラグが変わり、CI の生成一致ゲート（scaffold + git diff --exit-code）と食い違うため。
+# 2 回実行する: 1 回目が profiles 等を新規生成してファイル数が変わるため、2 回目で
+# Repository Snapshot（.agents/core.md）を固定点へ収束させる（以後の再実行は no changes）。
+log "エージェント文脈を scaffold します（agent-context scaffold . --agent generic --append-generated-block ×2）"
+if have agent-context; then
+  if agent-context scaffold . --agent generic --append-generated-block; then
+    agent-context scaffold . --agent generic --append-generated-block ||
+      warn "agent-context scaffold（2 回目・収束）に失敗しました。手動で再実行してください。"
+  else
+    warn "agent-context scaffold に失敗しました。テンプレート同梱の AGENTS.md 等をそのまま使用します。"
+  fi
+else
+  warn "agent-context が見つかりません。scaffold をスキップします（テンプレート同梱ファイルを使用）。"
 fi
 
 # --- 6) オプトイン導線 ---
