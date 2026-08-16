@@ -24,7 +24,7 @@
     in
     {
       # flake templates 出力。利用者は次で新規プロダクトを開始する:
-      #   nix flake init -t github:ponponusa/subaco#standard
+      #   nix flake init -t github:subaco-dev/subaco#standard
       # 各テンプレートは templates/<name>/ 配下に自己完結する（nixpkgs 直接参照）。
       templates = {
         minimal = {

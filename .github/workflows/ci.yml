@@ -8,9 +8,9 @@ name: ci
 #     multi-agent のみ。minimal は a-c-m 非同梱のため対象外）。ubuntu / macos マトリクス・Determinate Nix。
 #
 # (b) タグ運用:
-#     `nix flake init -t github:ponponusa/subaco#standard` は既定ブランチ（main）を取得するため、
+#     `nix flake init -t github:subaco-dev/subaco#standard` は既定ブランチ（main）を取得するため、
 #     開発中の main 破壊が DoD の 5 分クイックスタートを壊し得る。README は安定タグ参照
-#     `github:ponponusa/subaco/<tag>#standard` を案内する。テンプレート変更のリリース手順:
+#     `github:subaco-dev/subaco/<tag>#standard` を案内する。テンプレート変更のリリース手順:
 #       1) 本 smoke が両 OS × 3 テンプレートで green,
 #       2) 安定タグ vX.Y を付与（テンプレート変更は minor 以上）,
 #       3) README のタグ参照を更新する。

@@ -8,7 +8,7 @@ Subaco は、マルチベンダーのコーディングエージェント（Clau
 各プレーンを宣言的に固定します。
 
 - ライセンス: Apache-2.0
-- GitHub: `github:ponponusa/subaco`
+- GitHub: `github:subaco-dev/subaco`
 
 ## 前提条件（テンプレートの外側）
 
@@ -21,7 +21,7 @@ Subaco は、マルチベンダーのコーディングエージェント（Clau
 
 ```sh
 # 1) テンプレートを展開（standard 例。安定タグ参照を推奨 — 下記「バージョン」）
-nix flake init -t github:ponponusa/subaco#standard
+nix flake init -t github:subaco-dev/subaco#standard
 
 # 2) devShell を有効化（初回は nixpkgs 取得で数分。以降は即時）
 direnv allow
@@ -51,7 +51,7 @@ bash ./bootstrap.sh
 > `sandbox_run.py` はローカル dev（`SUBACO_HIVE_DEV` / `SUBACO_SHIM_DEV`）でのみ動作します。
 > minimal / standard は本体機能のみで完結し、この制約はありません。
 
-`nix flake init -t github:ponponusa/subaco#standard` の `#standard` を `#minimal` / `#multi-agent` に
+`nix flake init -t github:subaco-dev/subaco#standard` の `#standard` を `#minimal` / `#multi-agent` に
 変えると各テンプレートを取得できます（`#` 省略時は `default` = `standard`）。
 
 ## バージョンと nixpkgs ピン方針
@@ -59,12 +59,12 @@ bash ./bootstrap.sh
 - **nixpkgs は常に現行安定リリースへ追随**します（2026-07 時点で `nixos-26.05`）。NixOS のリリース
   サイクル（5 月 / 11 月）に合わせて更新します。各テンプレートは nixpkgs を直接参照し、
   `flake.lock` で完全固定されます。
-- **テンプレート取得は安定タグ参照を推奨**します。`nix flake init -t github:ponponusa/subaco#standard` は
+- **テンプレート取得は安定タグ参照を推奨**します。`nix flake init -t github:subaco-dev/subaco#standard` は
   既定ブランチ（main）を取得するため、開発中の main がクイックスタートを壊す可能性があります。安定運用では
   タグを明示してください:
 
   ```sh
-  nix flake init -t github:ponponusa/subaco/v0.1#standard
+  nix flake init -t github:subaco-dev/subaco/v0.1#standard
   ```
 
   タグ運用と smoke test（3 テンプレート × ubuntu/macOS）の詳細は
