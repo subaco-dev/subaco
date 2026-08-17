@@ -121,7 +121,9 @@ team=""
 log "チーム名を導出します（hive-team）"
 if have hive-team; then
   if team=$(hive-team); then
-    log "チーム名: $team（.hive/team に永続化）"
+    # ${team} のブレースは必須: 直後が全角括弧（マルチバイト）のため、ロケールによっては
+    # bash が後続バイトを変数名に含めて解釈し unbound variable になる（macOS CI で実測）。
+    log "チーム名: ${team}（.hive/team に永続化）"
   else
     warn "hive-team の実行に失敗しました。.hive/team は direnv（.envrc）が生成します。"
   fi
