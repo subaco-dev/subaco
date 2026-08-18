@@ -70,11 +70,38 @@ bash ./bootstrap.sh
   タグ運用と smoke test（3 テンプレート × ubuntu/macOS）の詳細は
   [`.github/workflows/ci.yml`](.github/workflows/ci.yml)を参照してください。
 
+## サンドボックスイメージ（multi-agent 用）
+
+multi-agent テンプレートの実行プレーン（cube-shim）が使う共通 OCI イメージを、本リポジトリの
+flake が提供します（`packages.{x86_64,aarch64}-linux.sandbox-image`。`dockerTools.buildLayeredImage`）。
+中身は multi-agent の `agent-tools.nix`（tier1 + tier2）を単一情報源とするため、**どの OS・
+どのバックエンドで実行しても devShell（環境プレーン）と同じツールチェーン**が保たれます。
+
+- **配布（既定）**: vX.Y タグ push で CI（[`sandbox-image.yml`](.github/workflows/sandbox-image.yml)）が
+  x86_64-linux / aarch64-linux の 2 アーキをネイティブ Linux ランナーでビルドし、
+  `ghcr.io/subaco-dev/subaco-sandbox` へマニフェストリストとして push します。利用側は
+  **マニフェストリスト digest 固定**（`CUBE_TEMPLATE_ID=ghcr.io/subaco-dev/subaco-sandbox@sha256:...`
+  — multi-agent の `.envrc` が export）で pull し、各ドライバ（podman / Apple Container / wslc）が
+  自ホストのネイティブアーキを自動解決します。通常利用でローカルビルドは不要です。
+- **Linux でのローカルビルド**:
+
+  ```sh
+  nix build .#sandbox-image && podman load -i result
+  ```
+
+- **macOS でのローカルビルド（代替手段）**: `buildLayeredImage` が生成する Linux イメージは
+  Linux ビルドホストでしかビルドできません。macOS でビルドしたい場合は linux-builder を構成
+  します — nix-darwin の [`nix.linux-builder`](https://nix-darwin.github.io/nix-darwin/manual/index.html#opt-nix.linux-builder.enable)、
+  または Determinate Nix の native Linux builder（2026-07 時点で developer preview・アクセス
+  申請制）。いずれも構成後は上記と同じ `nix build .#sandbox-image` が通ります。
+- CubeSandbox（強隔離オプション）へ同じイメージをサンドボックステンプレートとして変換する
+  補助スクリプトは必須構成外で、必要になった時点で提供します（設計書 §5.5）。
+
 ## リポジトリ構成
 
 ```
 subaco/
-├── flake.nix                 # templates（minimal/standard/multi-agent）+ subaco 自身の devShell
+├── flake.nix                 # templates（minimal/standard/multi-agent）+ sandbox-image + subaco 自身の devShell
 ├── templates/                # 各テンプレート（自己完結・nixpkgs 直接参照）
 │   ├── minimal/  standard/  multi-agent/
 ├── scripts/
@@ -82,7 +109,9 @@ subaco/
 │   └── vendor-acm.sh         # agent-context-maintainer 単一ファイルの vendoring（best-effort）
 ├── vendor/agent-context-maintainer/   # a-c-m の vendored copy 置き場（README 参照）
 ├── Justfile                  # fmt / lint / check
-└── .github/workflows/ci.yml  # smoke test
+└── .github/workflows/
+    ├── ci.yml                # smoke test（3 テンプレート × ubuntu/macOS）
+    └── sandbox-image.yml     # 共通サンドボックスイメージ（2 アーキ → GHCR マニフェストリスト）
 ```
 
 ## 開発（このリポジトリを編集する）

@@ -13,7 +13,10 @@ name: ci
 #     `github:subaco-dev/subaco/<tag>#standard` を案内する。テンプレート変更のリリース手順:
 #       1) 本 smoke が両 OS × 3 テンプレートで green,
 #       2) 安定タグ vX.Y を付与（テンプレート変更は minor 以上）,
-#       3) README のタグ参照を更新する。
+#       3) README のタグ参照を更新する,
+#       4) タグ push で sandbox-image.yml が共通サンドボックスイメージ（2 アーキ +
+#          マニフェストリスト）を GHCR へ publish するので、Job Summary の digest 固定参照を
+#          templates/multi-agent/.envrc の CUBE_TEMPLATE_ID へピン留めする（M2a-3）。
 on:
   push:
     branches: [main]

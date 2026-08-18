@@ -1,0 +1,138 @@
+name: sandbox-image
+# M2a-3: 共通サンドボックス OCI イメージのマルチアーキパイプライン（設計書 §5.5）。
+#
+# (a) build: flake の packages.{x86_64,aarch64}-linux.sandbox-image（dockerTools.
+#     buildLayeredImage。中身は multi-agent の agent-tools.nix tier1+tier2 ＝環境プレーンと
+#     同一ツールチェーン）を、各ネイティブ Linux ランナーでビルドする
+#     （ubuntu-latest = x86_64 / ubuntu-24.04-arm = aarch64。arm ランナーは公開リポジトリで
+#     無料利用可）。pkgsCross でなくネイティブランナーを使うのは、クロスビルドは
+#     binary cache が効かずツールチェーン閉包の再ビルドを招くため。
+#     pull_request ではビルドのみ（push なし）でパイプラインの健全性を検証する。
+#
+# (b) publish: vX.Y タグ push / workflow_dispatch 時のみ、各アーキを
+#     ghcr.io/<owner>/subaco-sandbox:<tag>-{amd64,arm64} へ push し、マニフェストリスト
+#     <tag> を作成・push して digest を Job Summary へ出力する。cube-shim の各ドライバは
+#     この digest 固定参照（CUBE_TEMPLATE_ID=ghcr.io/...@sha256:...）で pull し、
+#     自ホストのネイティブアーキをマニフェストリスト経由で自動解決する（flake.lock と
+#     同様の再現性担保——設計書 §5.5）。
+#
+# (c) リリース手順（ci.yml のタグ運用に追加）:
+#     1) vX.Y タグ push → 本ワークフローが 2 アーキ + マニフェストリストを publish,
+#     2) Job Summary の digest 固定参照を templates/multi-agent/.envrc の
+#        CUBE_TEMPLATE_ID へピン留めする,
+#     3) 初回 publish 後のみ: GHCR パッケージ subaco-sandbox の可視性を public へ変更する
+#        （Org のパッケージ設定・一度きりの手動操作。private のままだと利用側の pull が
+#        認証を要求される）。
+
+on:
+  pull_request:
+    # イメージ内容に影響するファイルのみ（テンプレート本文の変更では回さない）。
+    paths:
+      - flake.nix
+      - flake.lock
+      - templates/multi-agent/agent-tools.nix
+      - .github/workflows/sandbox-image.yml
+  push:
+    # main はビルドのみ（タグ前に Linux 実ビルドを検証する）。paths フィルタは
+    # タグ push には評価されない（GitHub 仕様）ため、vX.Y タグは常に実行される。
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - flake.nix
+      - flake.lock
+      - templates/multi-agent/agent-tools.nix
+      - .github/workflows/sandbox-image.yml
+  workflow_dispatch:
+
+# 最小権限（push を行う job のみ packages: write を個別付与）。
+permissions:
+  contents: read
+
+env:
+  # fork でも動くよう owner はリポジトリから導出する（本家は ghcr.io/subaco-dev/subaco-sandbox）。
+  IMAGE: ghcr.io/${{ github.repository_owner }}/subaco-sandbox
+
+jobs:
+  build:
+    name: build ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: 供給網対策としてリリース時に commit SHA へピン留めする（ci.yml と同一方針）。
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: nix build（sandbox-image）
+        run: nix build .#sandbox-image
+
+      - name: アーキ別イメージを GHCR へ push（publish 時のみ）
+        # publish はタグ push と手動実行のみ（pull_request / main push はビルド検証まで）。
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        # matrix.arch は本ワークフローが定める固定値のみ。env 経由で渡す（ci.yml と同じ作法）。
+        env:
+          ARCH: ${{ matrix.arch }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # タグ push は vX.Y をそのまま、workflow_dispatch は dev-<sha7> を暫定タグにする。
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="dev-${GITHUB_SHA:0:7}"
+          fi
+          podman login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin <<<"${GHCR_TOKEN}"
+          # buildLayeredImage の tag は出力ハッシュ由来のため、load 出力から参照を取得して retag する。
+          loaded="$(podman load -i result | sed -n 's/^Loaded image: //p' | head -n1)"
+          if [ -z "${loaded}" ]; then
+            echo "✗ podman load の出力からイメージ参照を取得できませんでした" >&2
+            exit 1
+          fi
+          podman tag "${loaded}" "${IMAGE}:${TAG}-${ARCH}"
+          podman push "${IMAGE}:${TAG}-${ARCH}"
+
+  publish-manifest:
+    name: manifest list push
+    # publish はタグ push と手動実行のみ（pull_request / main push はビルド検証まで）。
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: マニフェストリスト作成・push・digest 出力
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="dev-${GITHUB_SHA:0:7}"
+          fi
+          podman login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin <<<"${GHCR_TOKEN}"
+          podman manifest create "${IMAGE}:${TAG}"
+          podman manifest add "${IMAGE}:${TAG}" "docker://${IMAGE}:${TAG}-amd64"
+          podman manifest add "${IMAGE}:${TAG}" "docker://${IMAGE}:${TAG}-arm64"
+          podman manifest push --all --digestfile digest.txt "${IMAGE}:${TAG}" "docker://${IMAGE}:${TAG}"
+          digest="$(cat digest.txt)"
+          {
+            echo "## sandbox-image publish"
+            echo ""
+            echo "- マニフェストリスト: \`${IMAGE}:${TAG}\`"
+            echo "- **digest 固定参照（templates/multi-agent/.envrc の CUBE_TEMPLATE_ID へピン留めする値）:**"
+            echo ""
+            echo '  ```'
+            echo "  ${IMAGE}@${digest}"
+            echo '  ```'
+          } >>"${GITHUB_STEP_SUMMARY}"
