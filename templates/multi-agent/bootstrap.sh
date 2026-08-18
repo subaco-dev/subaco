@@ -21,18 +21,18 @@ set -euo pipefail
 CI_MODE=0
 for arg in "$@"; do
   case "$arg" in
-  --ci) CI_MODE=1 ;;
-  -h | --help)
-    cat <<'EOF'
+    --ci) CI_MODE=1 ;;
+    -h | --help)
+      cat <<'EOF'
 使い方: bash ./bootstrap.sh [--ci]
   --ci   非対話モード（CI / smoke 用。trusted_agents / allow_shared_kernel の対話導線を出さない）。
 EOF
-    exit 0
-    ;;
-  *)
-    printf 'bootstrap: 不明な引数: %s\n' "$arg" >&2
-    exit 2
-    ;;
+      exit 0
+      ;;
+    *)
+      printf 'bootstrap: 不明な引数: %s\n' "$arg" >&2
+      exit 2
+      ;;
   esac
 done
 
@@ -74,21 +74,21 @@ EOF
   local reply=""
   read -r reply || reply=""
   case "$reply" in
-  [yY] | [yY][eE][sS])
-    local cfg_dir="$HOME/.config/subaco-shim"
-    local cfg="$cfg_dir/config.toml"
-    mkdir -p "$cfg_dir"
-    if [ -f "$cfg" ]; then
-      warn "$cfg は既に存在します。内容を確認し、手動で allow_shared_kernel を設定してください。"
-    else
-      printf '# subaco-shim ホスト設定（リポジトリ外・エージェント書換不能）\nallow_shared_kernel = true\n' >"$cfg"
-      chmod 600 "$cfg"
-      log "作成しました: $cfg"
-    fi
-    ;;
-  *)
-    log "共有カーネル実行は許可しませんでした（既定: default-deny）。後から $HOME/.config/subaco-shim/config.toml で設定できます。"
-    ;;
+    [yY] | [yY][eE][sS])
+      local cfg_dir="$HOME/.config/subaco-shim"
+      local cfg="$cfg_dir/config.toml"
+      mkdir -p "$cfg_dir"
+      if [ -f "$cfg" ]; then
+        warn "$cfg は既に存在します。内容を確認し、手動で allow_shared_kernel を設定してください。"
+      else
+        printf '# subaco-shim ホスト設定（リポジトリ外・エージェント書換不能）\nallow_shared_kernel = true\n' >"$cfg"
+        chmod 600 "$cfg"
+        log "作成しました: $cfg"
+      fi
+      ;;
+    *)
+      log "共有カーネル実行は許可しませんでした（既定: default-deny）。後から $HOME/.config/subaco-shim/config.toml で設定できます。"
+      ;;
   esac
 }
 

@@ -15,18 +15,18 @@ set -euo pipefail
 CI_MODE=0
 for arg in "$@"; do
   case "$arg" in
-  --ci) CI_MODE=1 ;;
-  -h | --help)
-    cat <<'EOF'
+    --ci) CI_MODE=1 ;;
+    -h | --help)
+      cat <<'EOF'
 使い方: bash ./bootstrap.sh [--ci]
   --ci   非対話モード（CI / smoke 用。対話プロンプトを出さない）。
 EOF
-    exit 0
-    ;;
-  *)
-    printf 'bootstrap: 不明な引数: %s\n' "$arg" >&2
-    exit 2
-    ;;
+      exit 0
+      ;;
+    *)
+      printf 'bootstrap: 不明な引数: %s\n' "$arg" >&2
+      exit 2
+      ;;
   esac
 done
 # CI_MODE は standard では現状 未使用（対話導線なし）。multi-agent との API 整合のため受理する。

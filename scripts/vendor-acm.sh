@@ -56,12 +56,15 @@ fi
 
 # --- 配置先（このスクリプトの位置からリポジトリルートを解決し vendor/ を置く） ---
 script_dir=$(cd "$(dirname "$0")" && pwd)
-repo_root=$(dirname "$script_dir")     # scripts/ の親をリポジトリルートとみなす
+repo_root=$(dirname "$script_dir") # scripts/ の親をリポジトリルートとみなす
 vendor_dir="$repo_root/vendor/agent-context-maintainer"
 
 log() { printf '▶ vendor-acm: %s\n' "$*" >&2; }
 warn() { printf '⚠ vendor-acm: %s\n' "$*" >&2; }
-die() { printf '✗ vendor-acm: %s\n' "$*" >&2; exit 1; }
+die() {
+  printf '✗ vendor-acm: %s\n' "$*" >&2
+  exit 1
+}
 
 sha256_of() {
   if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | cut -d' ' -f1; else sha256sum "$1" | cut -d' ' -f1; fi

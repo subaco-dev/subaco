@@ -13,14 +13,12 @@
       # サポート対象の 4 システム（forAllSystems）。
       forAllSystems =
         f:
-        nixpkgs.lib.genAttrs
-          [
-            "x86_64-linux"
-            "aarch64-linux"
-            "aarch64-darwin"
-            "x86_64-darwin"
-          ]
-          (system: f nixpkgs.legacyPackages.${system});
+        nixpkgs.lib.genAttrs [
+          "x86_64-linux"
+          "aarch64-linux"
+          "aarch64-darwin"
+          "x86_64-darwin"
+        ] (system: f nixpkgs.legacyPackages.${system});
     in
     {
       # flake templates 出力。利用者は次で新規プロダクトを開始する:

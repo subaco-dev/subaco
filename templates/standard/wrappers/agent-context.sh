@@ -50,8 +50,8 @@ if [ -n "${SUBACO_ACM_DEV:-}" ]; then
     exec_acm "$SUBACO_ACM_DEV" "$@" || true
   elif [ -e "$SUBACO_ACM_DEV" ]; then
     case "$SUBACO_ACM_DEV" in
-    *.py) exec python3 "$SUBACO_ACM_DEV" "$@" ;;
-    *) exec "$SUBACO_ACM_DEV" "$@" ;;
+      *.py) exec python3 "$SUBACO_ACM_DEV" "$@" ;;
+      *) exec "$SUBACO_ACM_DEV" "$@" ;;
     esac
   fi
   echo "agent-context: SUBACO_ACM_DEV=$SUBACO_ACM_DEV から a-c-m エントリを解決できません。" >&2
