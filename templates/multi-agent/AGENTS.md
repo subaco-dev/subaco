@@ -42,6 +42,8 @@ devShell（`direnv allow` で有効化）で使えるツールの一覧と用途
 
 - **チーム協業のメモリ**（メッセージ・長期記憶）は hive-mcp の MCP ツール経由で扱う:
   `hive_join` / `hive_post` / `hive_inbox` / `hive_remember` / `hive_recall` / `hive_history` / `hive_members`。
+  Claude Code は同梱の `.mcp.json` で設定不要。**Codex / Gemini CLI の登録手順とメンバートークンの
+  扱いは [docs/mcp-clients.md](docs/mcp-clients.md)** を参照する。
 - **未信頼コードの検証実行**は `scripts/sandbox_run.py`（cube-shim 経由）で行う。自分のシェルで直接実行しない。
 - これらの**信頼・実行ポリシーの詳細は [.agents/core.md](.agents/core.md)** を必ず参照する
   （trust の扱い・default-deny・隔離レベルの記録）。
