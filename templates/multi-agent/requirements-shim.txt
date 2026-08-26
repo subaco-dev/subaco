@@ -5,7 +5,10 @@
 # cube-shim ラッパーは、このファイルが存在すれば --with-requirements で使用する
 # （コメントのみのプレースホルダでも無害。uv はコメント行を無視する）。
 #
-# 生成手順（リリース時・subaco-shim 側で実行）:
-#   uv export --frozen --no-dev --format requirements-txt > requirements-shim.txt
+# 生成手順（リリース時・subaco-shim 側で実行。正典は subaco-shim の Justfile `just export-reqs`）:
+#   uv export --no-dev --no-emit-project --format requirements-txt -o requirements-shim.txt
+#
+# subaco-shim は certifi を必須依存に持つため extras の指定は不要（hive とは異なる）。
+# `--no-emit-project` はプロジェクト自身を除く（版の固定は `subaco-shim==<版>` 側で行うため）。
 #
 # TODO(リリース): subaco-shim の初回 PyPI 公開（v0.0.0）時に実ピンで置き換える。

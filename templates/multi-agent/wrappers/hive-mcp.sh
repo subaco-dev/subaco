@@ -6,6 +6,9 @@
 # 依存の完全固定: テンプレート同梱の requirements-hive.txt（リリース時の uv export 産物）が
 # あれば --with-requirements で推移依存（zvec・fastembed・mcp SDK 等）をピン留めする。
 # dev fallback: SUBACO_HIVE_DEV にローカル subaco-hive のパスがあれば --from で起動する。
+#   **extras 必須**: subaco-hive は依存をすべて optional-dependencies に置く設計（本体は
+#   stdlib のみで import 可能）。`--from <path>` だけでは mcp SDK も zvec も入らず、
+#   「mcp SDK が未導入です」で即終了する（実測）。dev 経路でも [mcp,memory] を明示する。
 #
 # 注: writeShellApplication が shebang と `set -euo pipefail` を自動付与するため、
 #     本ファイルにはそれらを書かない。
@@ -25,9 +28,9 @@ find_up() {
   return 1
 }
 
-# 1) dev fallback: 公開前でもローカルソースから起動できる。
+# 1) dev fallback: 公開前でもローカルソースから起動できる（extras 込み——上記コメント参照）。
 if [ -n "${SUBACO_HIVE_DEV:-}" ]; then
-  exec uvx --from "$SUBACO_HIVE_DEV" subaco-hive
+  exec uvx --from "${SUBACO_HIVE_DEV}[mcp,memory]" subaco-hive
 fi
 
 # 2) ピン留め requirements があれば推移依存を完全固定して起動。
