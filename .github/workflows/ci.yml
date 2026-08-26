@@ -84,6 +84,13 @@ jobs:
           nix develop "path:$proj" -c rg --version
           nix develop "path:$proj" -c jq --version
 
+          # 実行プレーン検証ヘルパー（multi-agent のみ）: --help が stdlib のみで応答する
+          # （E2B SDK は遅延 import のため未 sync でも壊れない。SDK 実接続の検証は
+          # subaco-shim 側の live スイートが担う——M2b-3 のテンプレート組み込み分）。
+          if [ "$TEMPLATE" = "multi-agent" ]; then
+            nix develop "path:$proj" -c python3 scripts/sandbox_run.py --help >/dev/null
+          fi
+
       - name: agent-context ゲート（standard / multi-agent のみ）
         if: matrix.template != 'minimal'
         # a-c-m の vendored copy（bootstrap が取得・scaffold 済み）を前提とする必須ゲート。

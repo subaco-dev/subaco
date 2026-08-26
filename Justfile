@@ -42,6 +42,7 @@ check:
       scripts/gen-tool-list.py \
       templates/standard/scripts/gen-tool-list.py \
       templates/multi-agent/scripts/gen-tool-list.py \
+      templates/multi-agent/scripts/sandbox_run.py \
       templates/multi-agent/lib/hive_team.py
     echo "  ok: python"
 
@@ -54,3 +55,14 @@ gen-tools:
 gen-tools-check:
     python3 scripts/gen-tool-list.py --tools-nix templates/standard/agent-tools.nix --out templates/standard/.agents/tools.md --check
     python3 scripts/gen-tool-list.py --tools-nix templates/multi-agent/agent-tools.nix --out templates/multi-agent/.agents/tools.md --check
+
+# sandbox_run.py をシムリポジトリから同期する（正典はテンプレート側・開発とテストは shim 側）。
+# 変更手順: subaco-shim 側で編集し just test を green にしてから本レシピで同期・コミットする。
+# 両コピーは byte 一致（バナーも共通文面）。sha256 を表示するので一致を目視確認する。
+sync-sandbox-run shim_dir="../subaco-shim":
+    cp {{ shim_dir }}/scripts/sandbox_run.py templates/multi-agent/scripts/sandbox_run.py
+    shasum -a 256 {{ shim_dir }}/scripts/sandbox_run.py templates/multi-agent/scripts/sandbox_run.py
+
+# sandbox_run.py の同期検査（非破壊。隣接 checkout があるときの開発補助）。
+sync-sandbox-run-check shim_dir="../subaco-shim":
+    diff -q {{ shim_dir }}/scripts/sandbox_run.py templates/multi-agent/scripts/sandbox_run.py

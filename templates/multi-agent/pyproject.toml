@@ -12,9 +12,11 @@ version = "0.0.0"
 description = "agent-native product (multi-agent template)"
 requires-python = ">=3.11"
 dependencies = [
-  # TODO: scripts/sandbox_run.py が使う E2B SDK を追加する。
-  #   バージョンは将来の spike で固定する（勝手に確定しない）。
-  #   例: "e2b-code-interpreter==<将来確定するバージョン>"
+  # scripts/sandbox_run.py が使う E2B SDK。バージョンは E2B ワイヤ spike（05_spike結果）で
+  # 確定し、subaco-shim のワイヤ契約テスト（tests/test_wire_contract.py）がこの組で
+  # SDK 契約を実測固定している。更新はシム側の契約テスト green を確認してから行う。
+  "e2b==2.30.0",
+  "e2b-code-interpreter==2.8.1",
 ]
 
 [tool.uv]
