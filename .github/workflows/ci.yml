@@ -32,9 +32,9 @@ jobs:
     name: nix flake check (subaco repo)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # TODO: 供給網対策としてリリース時に commit SHA へピン留めする。
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/nix-installer-action@v22
       - name: nix flake check
         run: nix flake check
 
@@ -48,8 +48,8 @@ jobs:
         template: [minimal, standard, multi-agent]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v22
 
       - name: 展開 → bootstrap → 基本コマンド応答
         # matrix.template は本ワークフローが定める固定値のみ（外部入力ではない）。
