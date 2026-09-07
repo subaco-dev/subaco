@@ -15,9 +15,9 @@ jobs:
     name: nix flake check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Determinate Nix（flakes / nix-command が既定で有効）。
       # TODO: 供給網対策としてリリース時に commit SHA へピン留めする。
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/nix-installer-action@v22
       - name: nix flake check
         run: nix flake check

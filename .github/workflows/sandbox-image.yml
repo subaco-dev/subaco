@@ -68,9 +68,9 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # TODO: 供給網対策としてリリース時に commit SHA へピン留めする（ci.yml と同一方針）。
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/nix-installer-action@v22
 
       - name: nix build（sandbox-image）
         run: nix build .#sandbox-image
